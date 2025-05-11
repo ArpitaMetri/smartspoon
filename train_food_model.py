@@ -1,55 +1,47 @@
-import os
-import numpy as np
 import tensorflow as tf
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Conv2D, MaxPooling2D, Flatten
-from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense
+from tensorflow.keras.optimizers import Adam
 
-# Example directory for image data
-train_dir = "section_b_cv_food/train"
-val_dir = "section_b_cv_food/val"
+# Image parameters
+img_height, img_width = 100, 100
+batch_size = 8
 
-# Image Data Generator
-train_datagen = ImageDataGenerator(rescale=1./255)
-val_datagen = ImageDataGenerator(rescale=1./255)
+# Data loader
+train_dir = 'section_b_cv_food/dataset'
+datagen = ImageDataGenerator(rescale=1.0/255, validation_split=0.2)
 
-train_generator = train_datagen.flow_from_directory(
+train_data = datagen.flow_from_directory(
     train_dir,
-    target_size=(150, 150),
-    batch_size=32,
-    class_mode='categorical'
+    target_size=(img_height, img_width),
+    batch_size=batch_size,
+    class_mode='categorical',
+    subset='training'
 )
 
-validation_generator = val_datagen.flow_from_directory(
-    val_dir,
-    target_size=(150, 150),
-    batch_size=32,
-    class_mode='categorical'
+val_data = datagen.flow_from_directory(
+    train_dir,
+    target_size=(img_height, img_width),
+    batch_size=batch_size,
+    class_mode='categorical',
+    subset='validation'
 )
 
 # Simple CNN model
 model = Sequential([
-    Conv2D(32, (3, 3), activation='relu', input_shape=(150, 150, 3)),
-    MaxPooling2D((2, 2)),
-    Conv2D(64, (3, 3), activation='relu'),
-    MaxPooling2D((2, 2)),
+    Conv2D(32, (3, 3), activation='relu', input_shape=(img_height, img_width, 3)),
+    MaxPooling2D(2, 2),
     Flatten(),
     Dense(64, activation='relu'),
-    Dense(3, activation='softmax')  # Change '3' to the number of food categories
+    Dense(train_data.num_classes, activation='softmax')
 ])
 
 model.compile(optimizer=Adam(), loss='categorical_crossentropy', metrics=['accuracy'])
 
 # Train the model
-model.fit(
-    train_generator,
-    epochs=10,
-    validation_data=validation_generator
-)
+model.fit(train_data, validation_data=val_data, epochs=5)
 
 # Save the model
-os.makedirs("section_b_cv_food", exist_ok=True)
-model.save("section_b_cv_food/food_model.h5")
-
-print("✅ Food recognition model trained and saved as food_model.h5")
+model.save('section_b_cv_food/food_model.h5')
+print("✅ food_model.h5 saved.")
